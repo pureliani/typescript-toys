@@ -1,50 +1,41 @@
-export {}
-
-const are_object_keys_equal = <T extends object> (a: T, b: T) => {
-    const a_keys = Object.keys(a)
-    const b_keys = Object.keys(b)
-
-    const is_a_matching_b = b_keys.every(k => k in a)
-    const is_b_matching_a = a_keys.every(k => k in b)
-
-    return is_a_matching_b && is_b_matching_a
+function isObject(obj: unknown): obj is Record<string, unknown> {
+    return typeof obj === 'object' && obj !== null;
 }
 
-function equals(a: any, b: any): boolean {
-    if(a === b) return true
-    if(a !== null && b === null || a === null && b !== null) return false
-    if(typeof a === 'object' && typeof b !== 'object' || typeof a !== 'object' && typeof b === 'object') return false
-    const are_keys_equal = are_object_keys_equal(a, b)
-    if(!are_keys_equal) return false;
+function areObjectKeysEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
 
-    a[Symbol.for('visited')] = true
-    b[Symbol.for('visited')] = true
-
-    let isEqual = true
-    for(const [k, v] of Object.entries(a)) {
-        if((v as any)[Symbol.for('visited')] && (b[k] as any)[Symbol.for("visited")]) {
-            isEqual = are_object_keys_equal(v, b[k]);
-            continue;
-        }
-        isEqual = equals(v, b[k]);
-        if (!isEqual) break;
+    if (aKeys.length !== bKeys.length) {
+        return false;
     }
 
-    delete a[Symbol.for('visited')];
-    delete b[Symbol.for('visited')];
-
-    return isEqual
+    return aKeys.every((key) => bKeys.includes(key));
 }
 
-console.log(equals([{ a: 1, b: { x: [5] } }], [{ a: 1, b: { x: [5] } }])) // true
-console.log(equals([{ a: 1, b: { x: [5] } }], [{ a: 1, b: { x: [5], z: 2 } }])) // false
+function deepEquals(a: unknown, b: unknown, visited = new WeakMap()): boolean {
+    if (a === b) return true;
 
-const a = {};
-//@ts-ignore
-a.self = a;
+    if (!isObject(a) || !isObject(b)) {
+        return false;
+    }
 
-const b = {};
-//@ts-ignore
-b.self = b;
+    if (visited.get(a) === b && visited.get(b) === a) {
+        return true;
+    }
 
-console.log(equals(a, b));  // true ( structure is the same )
+    if (!areObjectKeysEqual(a, b)) {
+        return false;
+    }
+
+    visited.set(a, b);
+    visited.set(b, a);
+
+    for (const key of Object.keys(a)) {
+        if (!deepEquals(a[key], b[key], visited)) {
+            return false;
+        }
+    }
+
+    return true;
+}
