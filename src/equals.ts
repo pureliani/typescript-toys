@@ -1,41 +1,40 @@
-function isObject(obj: unknown): obj is Record<string, unknown> {
-    return typeof obj === 'object' && obj !== null;
-}
-
-function areObjectKeysEqual(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-    const aKeys = Object.keys(a);
-    const bKeys = Object.keys(b);
-
-    if (aKeys.length !== bKeys.length) {
-        return false;
-    }
-
-    return aKeys.every((key) => bKeys.includes(key));
-}
-
-function deepEquals(a: unknown, b: unknown, visited = new WeakMap()): boolean {
+export function equals(a: any, b: any): boolean {
     if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (typeof a !== typeof b) return false;
 
-    if (!isObject(a) || !isObject(b)) {
-        return false;
+    if (a instanceof Date && b instanceof Date) {
+        return a.getTime() === b.getTime();
     }
 
-    if (visited.get(a) === b && visited.get(b) === a) {
+    if (a instanceof RegExp && b instanceof RegExp) {
+        return a.toString() === b.toString();
+    }
+
+    if (Array.isArray(a) && Array.isArray(b)) {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) {
+            if (!equals(a[i], b[i])) return false;
+        }
         return true;
     }
 
-    if (!areObjectKeysEqual(a, b)) {
-        return false;
-    }
+    if (
+        Object.prototype.toString.call(a) === "[object Object]" &&
+        Object.prototype.toString.call(b) === "[object Object]"
+    ) {
+        const keysA = Object.keys(a);
+        const keysB = Object.keys(b);
 
-    visited.set(a, b);
-    visited.set(b, a);
+        if (keysA.length !== keysB.length) return false;
 
-    for (const key of Object.keys(a)) {
-        if (!deepEquals(a[key], b[key], visited)) {
-            return false;
+        for (const key of keysA) {
+            if (!keysB.includes(key)) return false;
+            if (!equals(a[key], b[key])) return false;
         }
+
+        return true;
     }
 
-    return true;
+    return false;
 }
